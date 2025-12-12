@@ -1,0 +1,33 @@
+package main
+
+import (
+	"bufio"
+	"fmt"
+)
+func part2(scanner *bufio.Scanner){
+	var ranges []IDrange
+
+	for scanner.Scan(){
+		line := scanner.Text();
+		if line == "" {
+			fmt.Println("blank line detected")
+			break
+		}
+		ranges = addIDrange(ranges, line)
+	}
+}
+
+
+// lets make this ugly!
+func aditionTime(rangeArray []IDrange){
+	freshIDs := make(map[int]bool)
+	for i := range rangeArray{
+		max := rangeArray[i].end
+		min := rangeArray[i].start
+		for j:= min; j <= max; j++{
+			freshIDs[j] = true
+		}
+	}
+	fmt.Println("Answer:")
+	fmt.Println(len(freshIDs))
+}
