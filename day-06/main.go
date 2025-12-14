@@ -8,7 +8,7 @@ import (
 
 func main(){
 	fmt.Println("hi")
-	part1(readFile())
+	part2(readFile())
 }
 
 func readFile() *bufio.Scanner{
