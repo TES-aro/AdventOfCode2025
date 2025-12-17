@@ -2,5 +2,6 @@ go 1.25.5
 
 use (
 	./day-07
+	./day-08
 	./utils
 )
