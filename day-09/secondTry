@@ -1,0 +1,120 @@
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"strconv"
+	"strings"
+)
+
+func part2(scanner *bufio.Scanner){
+	cords := []*cordinate{}
+	for scanner.Scan(){
+		line := scanner.Text()
+		if line == ""{
+			break
+		}
+		pair := strings.Split(line ,",")
+		x , err := strconv.Atoi(pair[0])
+		if err != nil {
+			break
+		}
+		y, err := strconv.Atoi(pair[1])
+		if err != nil{
+			break
+		}
+		cords = append(cords, &cordinate{x,y})
+	}
+
+	polygon := makePolygon(cords)
+
+	largest := 0
+
+	for i := 0; i < len(cords) - 1; i++{
+		prime := cords[i]
+		for j := i + 1; j < len(cords); j++{
+			comp := cords[j]
+			xmin, xmax := minMax(prime.x,  comp.x)
+			ymin, ymax := minMax(prime.y, comp.y)
+			size := (xmax-xmin+1) * (ymax-ymin+1)
+			if size > largest{
+				// make edges
+				t1 := &cordinate{prime.x, comp.y}
+				t2 := &cordinate{comp.x, prime.y}
+				// gods this one is ugly.
+				rectangle := []edge{edge{prime, t1}, edge{t1, comp},
+					edge{comp, t2}, edge{t2, prime}}
+				if isViable(polygon, rectangle){
+					largest = size
+				}
+			}
+		}
+	}
+	fmt.Printf("largest rectangle is: %d", largest)
+}
+
+
+type cordinate struct {
+	x int
+	y int
+}
+
+type edge struct {
+	a *cordinate
+	b *cordinate
+}
+
+func (e edge) isVeritcal() bool{
+	if e.a.x == e.b.x {
+		return true
+	}
+	return false
+}
+
+func (e edge) crosses(t edge) bool{
+	if e.isVeritcal() && t.isVeritcal() {
+		return false
+	}
+	if e.isVeritcal() {
+		yMin, yMax := minMax(e.a.y, e.b.y)
+		if yMin < t.a.y && yMax > t.a.y {
+			return true
+		}
+	}
+	xMin , xMax := minMax(e.a.x, e.b.x)
+	if xMin < t.a.x && xMax > t.a.x {
+		return true
+	}
+	return false
+}
+
+func isViable(polygon, rectangle []edge) bool {
+	for _, e1 := range rectangle{
+		for _, e2 := range polygon{
+			if e1.a == e2.a && e1.b == e2.b{
+				continue
+			}
+			if e1.crosses(e2){
+				return false
+			} 
+		}
+	}
+	return true
+}
+
+func makePolygon(cArray []*cordinate) []edge{
+	polygon := []edge{}
+	for i := 0 ; i < len(cArray) - 1; i++ {
+		polygon = append(polygon, edge{cArray[i], cArray[i+1]})
+	}
+	return polygon
+}
+
+// generics
+
+func minMax(a, b int)(min, max int){
+	if a >= b {
+		return a, b
+	}
+	return b, a
+}

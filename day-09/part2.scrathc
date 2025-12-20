@@ -1,0 +1,143 @@
+package main
+
+import (
+	"bufio"
+	"cmp"
+	"fmt"
+	"sort"
+	"strconv"
+	"strings"
+)
+
+// you know, I *could* solve it "graphically"
+// it *almost* works to just look at the next one and loop over but it is
+// possible for there to be a larger one.
+
+func part2(scanner *bufio.Scanner){
+	cordArray := []*cords{}
+	xArray := []*cords{}
+	yArray := []*cords{}
+	for scanner.Scan(){
+		line := scanner.Text()
+		if line == ""{
+			break
+		}
+		pair := strings.Split(line ,",")
+		x , err := strconv.Atoi(pair[0])
+		if err != nil {
+			break
+		}
+		y, err := strconv.Atoi(pair[1])
+		if err != nil{
+			break
+		}
+		cord := &cords{x, y, nil}
+		// this is ugly but I can't be bothered to reformat the first read
+		if len(xArray) != 0 {
+		xArray[len(xArray)-1].next = cord
+		}
+		cordArray = append(cordArray, cord)
+		xArray = append(xArray, cord)
+		yArray = append(yArray, cord)
+	}
+	xArray[len(xArray)-1].next = xArray[0]
+
+	sort.Slice(xArray, func(i, j int) bool {
+		return (*xArray[i]).x < (*xArray[j]).x
+	})
+	sort.Slice(yArray, func(i, j int) bool {
+		return (*yArray[i]).y < (*yArray[j]).y
+	})
+
+	// should implement binary search since we're sorting buuut.
+
+	largest := 0
+	for i := 0; i < len(xArray) - 1; i++{
+		for j := i + 1; j < len(xArray); j++{
+			size := getSize(xArray, i, j)
+			if size > largest{
+
+			}
+		}
+	}
+
+	fmt.Printf("largest rectangle is")
+}
+
+type cords struct{
+	x int
+	y int
+	next *cords
+}
+
+
+func isViable (x1, x2 , y1, y2 int, xCords []*cords) bool {
+	xmin, xmax := minMax(x1,x2)
+	ymin, ymax := minMax(y1, y2)
+	start := binaryCordSearch(xCords, xmin, true)
+	end := binaryCordSearch(xCords, xmax, true)
+	for i := start; i < end+1; i++{
+		lineStart := *xCords[i]
+		if lineStart.y == lineStart.next.y {
+			continue
+		}
+		lineMin, lineMax := minMax(lineStart.y, lineStart.next.y)
+		if (lineMin < y1 && lineMax > y1)
+
+	}
+}
+
+func breaksLine (lineMin, lineMax, line int) bool{
+	if lineMin < line && lineMax >
+}
+
+
+func minMax(a, b int)(min int, max int){
+	if a >= b{
+		return a,b
+	}
+	return b,a
+}
+
+func getSize(cords []*cords, i,j int) int{
+	cordsI := *cords[i]
+	cordsJ := *cords[j]
+	var dX int
+	var dY int
+	if cordsJ.x >= cordsI.x {
+		dX = cordsJ.x - cordsI.x + 1
+	} else {
+		dX = 1 + cordsI.x - cordsJ.x
+	}
+	if cordsJ.y >= cordsI.y {
+		dY = 1 + cordsJ.y - cordsI.y
+	} else {
+		dY = 1 + cordsI.y - cordsJ.y
+	}
+	return dX * dY
+}
+
+
+func binaryCordSearch(orderedArray []*cords, target int, x bool) int{
+	middle := len(orderedArray) / 2
+	var comparision int;
+	if x{
+		comparision = (*orderedArray[middle]).x
+	} else {
+		comparision = (*orderedArray[middle]).y
+	}
+
+	if len(orderedArray) == 0{
+		return -1
+	}
+	if target < comparision{
+		return binaryCordSearch(orderedArray[:middle],target, x)
+	}
+	if target > comparision{
+		result := binaryCordSearch(orderedArray[middle+1:], target, x)
+		if result != -1 {
+			return result + middle+1
+		}
+	}
+	return middle
+}
