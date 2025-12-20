@@ -1,0 +1,169 @@
+package main
+
+import (
+	"bufio"
+	"fmt"
+)
+
+func part1(scanner *bufio.Scanner){
+	instructions := []*diagram{}
+	for scanner.Scan(){
+		line := scanner.Text()
+		if line == ""{
+			continue
+		}
+		diagram := parsLine(line) 
+		instructions = append(instructions, &diagram)
+	}
+	answers := []int{}
+	for _, l := range instructions{
+		answers = append(answers, l.solve())
+	}
+	fmt.Println(answers)
+	sum := 0
+	for _, v := range answers{
+		sum += v
+	}
+	fmt.Printf("\n\n  asnwer is: %d",sum)
+
+}
+
+type diagram struct{
+	lights []bool
+	buttons [][]int
+	joltage []int
+}
+
+// all start as off, hence we need uneven for those who need to be on and
+// and even for off.
+
+func (d *diagram) check(lights []bool) bool{
+	if len(d.lights) != len(lights){
+		return false
+	}
+	for i, v := range d.lights{
+		if lights[i] != v{
+			return false
+		}
+	}
+	return true
+}
+
+func pressButton(lights []bool, button []int) []bool{
+	newLights := []bool{}
+	for _, v := range lights{
+		newLights = append(newLights, v)
+	}
+	for _, i := range button{
+		newLights[i] = !newLights[i]
+	}
+	return newLights
+}
+// this is kinda funky! guess you could recurse it
+
+func (d *diagram) solve()int{
+	fmt.Println("the goal is:")
+	fmt.Println(d.lights)
+	fmt.Println("")
+	buttonMap := map[*[]int]int{}
+	for i := range d.buttons{
+		buttonMap[&d.buttons[i]] = 3
+	}
+	lightsOff := []bool{}
+	for i := 0; i < len(d.lights);i++{
+		lightsOff = append(lightsOff, false)
+	}
+	//cache := MakeCache()
+	best := 11
+	recurse(d, lightsOff, 0, &best)
+
+	return best
+}
+
+func recurse(d *diagram, state []bool, depth int, limit *int)int {
+	if depth > *limit{
+		return *limit
+	}
+	if d.check(state){
+		if depth < 10 {
+			fmt.Printf("matched at depth: %d\n", depth)
+		}
+		*limit = depth
+		return 0
+	}
+	best := 100
+
+	for _, b := range d.buttons{
+		lights := pressButton(state,b)
+		stepsRemain := recurse(d, lights, depth+1, limit)
+		if stepsRemain < best{
+			best = stepsRemain
+		}
+	}
+	return best
+}
+
+
+// fiiine, let's add cache
+type cache struct{
+	boolMap map[int]int
+}
+
+func (c *cache) Add(array []bool, val int){
+	c.boolMap[hashArray(array)] = val
+}
+func (c *cache) Get(array []bool) (int, bool){
+	a, b := c.boolMap[hashArray(array)]
+	return a, b
+}
+
+func MakeCache() *cache{
+	cache := cache{}
+	cache.boolMap = map[int]int{}
+	return &cache
+}
+// guess we aren't mapping arrays as keys.
+// yeah, there's exponent but laaazy
+func pow10(n int) int {
+	i := 1
+	if n == 0{
+		return i
+	}
+	for x := 1; x <= n; x++{
+		i = i*10
+	}
+	return i
+}
+
+func (c *cache) GetBest() (int, bool){
+	a, b := c.boolMap[0]
+	return a, b
+}
+
+func hashArray(array []bool) int{
+	num := 0
+	for i, v := range array{
+		n := 0
+		if v {
+			n = 1
+		}
+		num += n * pow10(i)
+	}
+	return num
+}
+
+func copyState(state []bool) []bool{
+	newState := []bool{}
+	for _, v := range state{
+		newState = append(newState, v)
+	}
+	return newState
+}
+
+func copyMap(m map[*[]int]int) map[*[]int]int {
+	newMap := map[*[]int]int{}
+	for i, v := range m{
+		newMap[i] = v
+	}
+	return newMap
+}
