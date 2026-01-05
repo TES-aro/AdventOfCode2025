@@ -1,189 +1,111 @@
-
 package main
 
 import (
 	"bufio"
 	"fmt"
+	"strconv"
 	"strings"
+	"sort"
 )
-// guess I'll implement linked list meself
-type IDLinkedList struct{
-	head  *IDNode
-	tail *IDNode
-	current *IDNode
-}
-
-type IDNode struct{
-	data IDrange
-	next *IDNode
-	prev *IDNode
-}
-
-// InsertAtEnd inserts a new node at the end of the list
-func (node *IDNode) Delete(list *IDLinkedList){
-	prev := node.prev
-	next := node.next
-	if node == list.head {
-		list.head = node.next
-		list.head.prev = nil
-	}
-
-	if node == list.tail {
-		list.tail = node.prev
-		node.prev.next = nil
-	}
-	if prev != nil {
-		prev.next = next
-	}
-	if next != nil {
-		next.prev = prev
-	}
-}
-func (ll *IDLinkedList) Add(data IDrange) {
-    newNode := &IDNode{data: data}
-    if ll.head == nil {
-	    fmt.Println("Started a new list!")
-        // If the list is empty, set both head and tail to the new node
-        ll.head = newNode
-        ll.tail = newNode
-        ll.current = newNode
-    } else {
-        ll.tail.next = newNode
-        newNode.prev = ll.tail
-        ll.tail = newNode
-    }
-}
-
-// back to code proper
 
 func part2(scanner *bufio.Scanner){
-	ranges := *new(IDLinkedList)
-	llCounter := 0;
+	ranges := []pair{}
 	for scanner.Scan(){
-		line := scanner.Text();
-		if line == "" {
-			fmt.Println("blank line detected")
-			break
+		splitLine := strings.Split(scanner.Text(),"-")
+		if len(splitLine) < 2{
+			continue
 		}
-		llCounter++
-		hPair := strings.Split(line, "-")
-		var pair = IDrange{toInt(hPair[0]), toInt(hPair[1])}
-		ranges.Add(pair)
+		ranges = append(ranges, newRange(splitLine))
 	}
-	fmt.Println(llCounter)
-	iterate(ranges)
-}
 
-func fullOverlap (first IDrange, second IDrange) bool{
-	fStart := first.start
-	fEnd := first.end
-	sStart := second.start
-	sEnd := second.end
-
-	if fEnd < sEnd && fStart > sStart{
-		return true
+	sort.Slice(ranges,func(i, j int) bool { return ranges[j].min > ranges[i].min})
+	for _, pair := range ranges{
+		fmt.Println(pair) 
 	}
-	return false
-}
-
-func overlapStart(first IDrange, second IDrange) bool{
-	fStart := first.start
-	sStart := second.start
-	sEnd := second.end
-
-	if fStart <= sEnd && fStart >= sStart{
-		return true
-	}
-	return false
-}
-
-
-func overlapEnd(first IDrange, second IDrange) bool{
-	fStart := first.start
-	fEnd := first.end
-	sStart := second.start
-	sEnd := second.end
-
-	if fS§
-}	
-func overlap(first IDrange, second IDrange) bool{
-	fStart := first.start
-	fEnd := first.end
-	sStart := second.start
-	sEnd := second.end
-	if fEnd < sStart || sEnd < fStart{
-		return false
-	}
-	// delete these.
-	if fEnd < sEnd && fStart > sStart{
-		return true
-	}
-	if fEnd >= sStart && fStart < sStart{
-		return true
-	}
-	return false
-}
-
-func iterate(rangeList IDLinkedList){
+	size := len(ranges)
+	fmt.Println(size) 
 	for true {
-		delCounter := 0
-		nodePrime := rangeList.head
-		for nodePrime != nil {
-			pPair := nodePrime.data
-			pStart := pPair.start
-			pEnd := pPair.end
-			nodeSecond := rangeList.head
-			for nodeSecond != nil{
-				if nodeSecond == nodePrime{
-					nodeSecond = nodeSecond.next
-					continue
-				}
-				sPair := nodeSecond.data
-				sStart := sPair.start
-				sEnd := sPair.end
-				if sEnd <= pEnd && sStart >= pStart {
-					delCounter++
-					nodeSecond.Delete(&rangeList) 
-				}
-				if (sStart <= pStart){
-					if(sEnd >= pStart){
-						nodePrime.data.start = sStart
-						if(sEnd >= pEnd){
-							nodePrime.data.end = sEnd
-						}
-						//deleting manually yay
-						delCounter++
-						nodeSecond.Delete(&rangeList)
-					}
-				}
-				if (sEnd >= pEnd && sStart <= pEnd){
-					nodePrime.data.end = sEnd;
-					delCounter++
-					nodeSecond.Delete(&rangeList)
-				}
- 				nodeSecond = nodeSecond.next
-			}
-			nodePrime = nodePrime.next
-		}
-		fmt.Println(delCounter) 
-		if delCounter == 0 {
+		ranges = fuseRanges(ranges)
+		newSize := len(ranges)
+		fmt.Println(newSize)
+		if size == len(ranges) {
 			break
 		}
+		size = len(ranges)
 	}
-	//once more!
-	node := rangeList.head
-	counter := 0
-	ingredientCounter := 0
-	for node != nil {
-		counter++
-		fmt.Print(node.data.start)
-		fmt.Print(" - ")
-		fmt.Println(node.data.end) 
-		ingredientCounter += (node.data.end - node.data.start + 1)
-		node = node.next
+	
+	for _, pair := range ranges{
+		fmt.Println(pair) 
 	}
-	fmt.Println("new list size:")
-	fmt.Println(counter)
-	fmt.Println("Answer is:")
-	fmt.Println(ingredientCounter) 
+	count := countAll(ranges)
+	fmt.Printf("\nfull count: %d",count)
+}
+
+// and now just look at the overlaps
+type pair struct{
+	min int
+	max int
+}
+
+func newRange(str []string)pair{
+	pair := pair{}
+	a, err := strconv.Atoi(str[0])
+	if err != nil{
+		fmt.Println("something went wrong!")
+		return pair
+	}
+	b, err := strconv.Atoi(str[1])
+	if err != nil {
+		fmt.Println("fuck")
+	}
+	x, y := minMax(a,b)
+	pair.min = x
+	pair.max = y
+	return pair
+}
+
+func minMax(a, b int)(int,int){
+	if a < b {
+		return a, b
+	}
+	return b, a
+}
+
+// let's order it to save me some headache. prolly not the most efficient.
+func fuseRanges(ranges []pair)[]pair{
+	newRanges := []pair{}
+	i := 0
+	for i < len(ranges) - 1{
+		fmt.Printf("comparing %d and %d\n", ranges[i].max, ranges[i+1].min) 
+		if ranges[i].max >= ranges[i+1].min{
+			fmt.Println("found one") 
+			if ranges[i].max >= ranges[i+1].max{
+				newRanges = append(newRanges, ranges[i])
+				i += 2
+				continue
+			}
+			newPair := pair{ranges[i].min, ranges[i+1].max}
+			newRanges = append(newRanges, newPair)
+			i += 2
+			continue
+		}
+		newRanges = append(newRanges, ranges[i])
+		i++
+	}
+	if i < len(ranges){
+		newRanges = append(newRanges, ranges[i])
+	}
+	for _, a := range newRanges {
+		fmt.Println(a) 
+	}
+
+	return newRanges
+}
+
+func countAll(ranges []pair)int{
+	count := 0
+	for _, pair := range ranges{
+		count += 1+(pair.max-pair.min)
+	}
+	return count
 }
