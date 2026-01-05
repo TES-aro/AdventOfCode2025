@@ -7,6 +7,6 @@ import (
 
 func main(){
 	fmt.Println("day 08")
-	part1(utilsAOC.ReadFile())
+	part2(utilsAOC.ReadFile())
 }
 

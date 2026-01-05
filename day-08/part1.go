@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"maps"
 	"math"
 	"sort"
 	"strconv"
@@ -12,10 +11,11 @@ import (
 
 // eh, it's O(n^2) at least ignoring the sort so let's do it the easy way.
 
-const connectionCount int = 20
+const connectionCount int = 1000
 
 func part1(scanner *bufio.Scanner){
-	boxes := []juncBox{}
+	boxes := []*juncBox{}
+	connectedArray := []*juncBox{}
 	for scanner.Scan(){
 		cordStr := strings.Split(scanner.Text() ,",")
 		x , err := strconv.Atoi(cordStr[0])
@@ -33,121 +33,88 @@ func part1(scanner *bufio.Scanner){
 			fmt.Println(cordStr)
 			break
 		}
-		boxes = append(boxes, juncBox{x, y,z, map[*juncBox]bool{}, 0})
+		boxes = append(boxes, &juncBox{x, y,z, map[*juncBox]bool{}, 0})
 	}
-	// calculate each connection
-	connectionLengths := getDistances(boxes)
-	sort.Slice(connectionLengths, func(i, j int) bool {
-		return connectionLengths[i].distance < connectionLengths[j].distance
-	})
-	for i := 0; i < connectionCount; i++{
-		connection := &connectionLengths[i]
-		connection.connect()
+	// create all possible connections
+	i := 0
+	connections := []connection{}
+	for i < len(boxes) - 1 {
+		j := i+1
+		for j < len(boxes){
+			connections = append(connections, boxes[i].getConnection(boxes[j]))
+			j++
+		}
+		i++
 	}
-	circuits := findconnected(boxes)
-	sort.Slice(circuits,func(i, j int) bool {
-		return circuits[i].size > circuits[j].size
-	})
-	// last getting the three largest
-	answer := 1
-	for i := 0; i < 3; i++{
-		fmt.Println(circuits[i])
-		answer = answer * circuits[i].size
+	fmt.Println("sorting connections")
+	sort.Slice(connections,
+		func(i int, j int) bool { return connections[i].distance < connections[j].distance})
+	for i := 0; i < connectionCount; i++ {
+		pair := connections[i]
+		pair.a.connect(pair.b)
+		connectedArray = append(connectedArray, pair.a)
 	}
-	fmt.Printf("the answer is: %d", answer) 
+	colorCounter(connectedArray)
 }
 
-type juncBox struct{
+type juncBox struct {
 	x int
 	y int
 	z int
-	connected map[*juncBox]bool
-	// group 0 means not connected.
-	group int
+	connectedTo map[*juncBox]bool
+	color int
 }
 
-func (jb *juncBox) distance(target *juncBox) float64{
-	x := jb.x - target.x
-	y := jb.y - target.y
-	z := jb.z - target.z
-	sum := x*x + y*y + z*z
-	return math.Pow(float64(sum), 0.5)
-}
-
-type boxConnection struct{
-	boxes map[*juncBox]bool
+type connection struct {
 	distance float64
+	a *juncBox
+	b *juncBox
 }
 
-func (jb *juncBox) getBoxConnection(target *juncBox) boxConnection{
-	distance := jb.distance(target)
-	boxes := map[*juncBox]bool{}
-	boxes[jb] = true
-	boxes[target] = true
-	return boxConnection{boxes, distance}
+func  distance(a, b *juncBox) float64{
+	distance := math.Sqrt(math.Pow(float64(a.x - b.x), 2) +
+		math.Pow(float64(a.y - b.y), 2) + math.Pow(float64(a.z-b.z),2))
+	return distance
 }
 
-func getDistances(boxes []juncBox) []boxConnection{
-	connections := []boxConnection{}
-	for i := range boxes{
-		box := &boxes[i]
-		for j := i+1; j < len(boxes); j++{
-			targetBox := &boxes[j]
-			connections = append(connections, box.getBoxConnection(targetBox))
-		}
+func (a *juncBox) getConnection(b *juncBox) connection{
+	return connection{distance(a, b), a, b}
+}
+
+func (a *juncBox) connect(b *juncBox){
+	a.connectedTo[b] = true
+	b.connectedTo[a] = true
+}
+
+func recurseColor(box *juncBox, color int)int{
+	counter := 0
+	if box.color == color{
+		return counter
 	}
-	return connections
-}
-
-func sortConnections(connections []boxConnection) []boxConnection{
-	sort.Slice(connections, func(i, j int) bool {
-		return connections[i].distance < connections[j].distance
-	})
-	return connections
-}
-
-func (con *boxConnection) connect(){
-	boxes := []*juncBox{}
-	for a:= range con.boxes{
-		boxes = append(boxes, a)
+	box.color = color
+	for  connectedBox := range box.connectedTo{
+		counter += recurseColor(connectedBox, color)
 	}
-	jb := boxes[0]
-	target := boxes[1]
-	if jb.connected[target] != true{
-		jb.connected[target] = true
-		target.connected[jb] = true
-	}
+	return counter + 1
 }
 
-type circuitSize struct {
-	number int
-	size int
-}
-
-
-func findconnected(boxes []juncBox) []circuitSize{
-	groups := []circuitSize{}
-	groupNum := 0
-	for _ , box:= range boxes{
-		if box.group != 0 {
+func colorCounter(boxArray []*juncBox)int{
+	color := 1
+	counts := []int{}
+	fmt.Printf("size of juncBox: %d\n",len(boxArray))
+	for _, box := range boxArray{
+		if box.color != 0 {
 			continue
 		}
-		groupNum++
-		count := box.color(groupNum)
-		groups = append(groups, circuitSize{groupNum, count})
+		newCount := recurseColor(box, color)
+		fmt.Println(newCount)
+		counts = append(counts, newCount)
 	}
-	return groups
-}
-
-func (jb *juncBox) color(num int) int{
-	if jb.group != 0{
-		return 0
+	sort.Slice(counts,  func(i int, j int) bool{return counts[i]>counts[j]})
+	multiplied := 1
+	for i := 0; i < 3; i++ {
+		multiplied = multiplied * counts[i]
 	}
-	count := 1
-	jb.group = num
-	box := *jb
-	for connection := range maps.Keys(box.connected){
-		count += connection.color(num)
-	}
-	return count
+	fmt.Printf("multiplied size is: %d\n", multiplied)
+	return multiplied
 }
